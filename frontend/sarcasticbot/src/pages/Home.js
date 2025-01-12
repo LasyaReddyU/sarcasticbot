@@ -5,48 +5,112 @@ import '../App.css';
 
 export default function Home() {
   const [selectedOption, setSelectedOption] = useState(null);
-  const [pdfFile, setPdfFile] = useState(null);  // Store the PDF file
-  const [pdfText, setPdfText] = useState('');    // Store the summarized text
-  const [pdfUploaded, setPdfUploaded] = useState(false);  // Track if the PDF is uploaded
-  const [modeSelected, setModeSelected] = useState(null); // Track selected mode
+  const [searchText, setSearchText] = useState('');
+  const [pdfFile, setPdfFile] = useState(null);
+  const [pdfUploaded, setPdfUploaded] = useState(false);
+  const [modeSelected, setModeSelected] = useState(null);
+  const [pdfText, setPdfText] = useState(''); // New state for pdfText
 
   const navigate = useNavigate();
 
-  // Handle the PDF upload and store the file in state
-  const handlePdfUpload = (event) => {
+  const handlePdfUpload = async (event) => {
     const file = event.target.files[0];
     if (file && file.type === 'application/pdf') {
-      setPdfFile(file); // Store the file
-      setPdfUploaded(true); // Set PDF uploaded state
-      console.log(file); // Check if the file is set correctly
+      setPdfFile(file);
+      setPdfUploaded(true);
+
+      // Process the PDF immediately after upload
+      const formData = new FormData();
+      formData.append('file', file);
+
+      try {
+        const response = await fetch('http://localhost:8000/upload-document', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!response.ok) throw new Error('Upload failed');
+
+        const data = await response.json();
+        // Set the pdfText from the processed PDF data
+        setPdfText(data.pdfText); // Assuming 'pdfText' is part of the response
+
+        // Store the processed data in localStorage or state management solution
+        localStorage.setItem('quizData', JSON.stringify(data));
+      } catch (error) {
+        console.error('Error:', error);
+        alert('Failed to process document. Please try again.');
+        setPdfFile(null);
+        setPdfUploaded(false);
+      }
     } else {
       alert('Please upload a valid PDF file.');
     }
   };
 
-  // Handle mode selection (learn or practice)
   const handleModeSelection = (mode) => {
-    setModeSelected(mode); // Set the mode (learn or practice)
+    setModeSelected(mode);
   };
 
-  // Handle navigating to the respective mode after selecting PDF or topic
   const handleProceedToPractice = () => {
     if (pdfUploaded || selectedOption === 'topic') {
-      navigate('/practice');
-    } else {
-      alert("Please upload a PDF or select a topic first.");
-    }
-  };
-
-  // Handle mode selection for Learn Mode
-  const handleProceedToLearn = () => {
-    if (pdfUploaded || selectedOption === 'topic') {
-      navigate('/learn');
+      // Generate or retrieve topic-specific data if selectedOption is 'topic'
+      const topicData = selectedOption === 'topic' ? generateTopicQuizData(searchText) : null; // Replace with your logic
+  
+      navigate('/practice', {
+        state: {
+          fromHome: true,
+          fileUploaded: pdfUploaded,
+          pdfFile,
+          pdfText,
+          topicData // Pass topic-specific data
+        }
+      });
     } else {
       alert("Please upload a PDF or select a topic first.");
     }
   };
   
+  const handleProceedToLearn = () => {
+    if (pdfUploaded || selectedOption === 'topic') {
+      navigate('/learn', { state: { pdfFile, pdfText } });
+    } else {
+      alert("Please upload a PDF or select a topic first.");
+    }
+  };
+
+  const handleSearchChange = (event) => {
+    setSearchText(event.target.value);
+  };
+
+  const handleSearch = () => {
+    // Update pdfText with the search input
+    setPdfText(searchText); // Passing search input to pdfText
+
+    // You can replace this alert with the logic to fetch questions or summary based on searchText
+    alert(`Search for: ${searchText}`);
+  };
+
+  const generateTopicQuizData = (topic) => {
+    // Your logic to generate topic-specific quiz data here
+    // For example, you could call an API or fetch predefined data
+    return {
+      topic,
+      questions: [
+        {
+          question: `What is related to ${topic}?`,
+          options: ['A', 'B', 'C', 'D'],
+          correctAnswer: 'A',
+        },
+        {
+          question: `Explain the concept of ${topic}.`,
+          options: ['A', 'B', 'C', 'D'],
+          correctAnswer: 'B',
+        },
+      ],
+    };
+  };
+
   return (
     <div style={{ display: 'flex', height: '100vh' }}>
       <div style={{ width: '40%', textAlign: 'center', backgroundColor: '#4A90E2', height: '100vh', color: 'white', alignItems: 'center' }}>
@@ -64,34 +128,65 @@ export default function Home() {
           </>
         ) : (
           <div>
-            <h3 className='fancy-text'>{modeSelected === 'practice' ? 'Choose Content for Practice' : 'Choose Content for Learning'}</h3>
+            <h3 className='fancy-text'>
+              {modeSelected === 'practice' ? 'Choose Content for Practice' : 'Choose Content for Learning'}
+            </h3>
             <div style={{ display:'block', margin: '4.0rem 10.0rem' }}>
               <button className='button' onClick={() => setSelectedOption('pdf')} style={{ margin: '1.0rem' }}>Upload PDF</button>
               <button className='button' onClick={() => setSelectedOption('topic')} style={{ margin: '1.0rem' }}>Start by Topic</button>
             </div>
 
-            {/* If user chooses to upload PDF */}
             {selectedOption === 'pdf' && (
               <div style={{ display:'block', margin: '0rem 15rem' }}>
-                <input type="file" accept="application/pdf" onChange={handlePdfUpload} />
+                <input 
+                  type="file" 
+                  accept="application/pdf" 
+                  onChange={handlePdfUpload}
+                  disabled={pdfUploaded} 
+                />
+                {pdfUploaded && <p className="text-green-500">✓ PDF uploaded successfully</p>}
               </div>
             )}
 
-            {/* If user chooses to select a topic */}
             {selectedOption === 'topic' && (
               <div>
-                <button className='button'>Math</button>
-                <button className='button'>Science</button>
+                <input 
+                  type="text" 
+                  placeholder="Search for a topic" 
+                  value={searchText}
+                  onChange={handleSearchChange}
+                  style={{ padding: '0.5rem', fontSize: '1rem', margin: '1rem' }}
+                />
+                <button 
+                  className='button' 
+                  onClick={handleSearch} 
+                  style={{ margin: '1rem' }}
+                >
+                  Search
+                </button>
               </div>
             )}
 
             <div style={{ marginTop: '20px' }}>
-              {/* Proceed based on mode */}
               {modeSelected === 'practice' && (
-                <button style={{ display:'block', margin: '0 auto' }} className='button' onClick={handleProceedToPractice}>Start Practice</button>
+                <button 
+                  style={{ display:'block', margin: '0 auto' }} 
+                  className='button' 
+                  onClick={handleProceedToPractice}
+                  disabled={!pdfUploaded && selectedOption !== 'topic'}
+                >
+                  Start Practice
+                </button>
               )}
               {modeSelected === 'learn' && (
-                <button style={{ display:'block', margin: '0 auto' }} className='button' onClick={handleProceedToLearn}>Start Learning</button>
+                <button 
+                  style={{ display:'block', margin: '0 auto' }} 
+                  className='button' 
+                  onClick={handleProceedToLearn}
+                  disabled={!pdfUploaded && selectedOption !== 'topic'}
+                >
+                  Start Learning
+                </button>
               )}
             </div>
           </div>
