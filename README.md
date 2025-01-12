@@ -10,3 +10,11 @@ Sarcastic Robot Teacher is a conversational AI chatbot that offers sarcastic res
 
 # Key Technologies
 RAG, GrocLake
+
+# Features
+Interactive practice mode for uploaded files for any topic, ie user can be quized on any pdf they upload with a saasy response.
+Dynamic responses and questions using rag via Groclake.
+Progress bar and 5 lives to gamify the experiance.
+Sarcastic responses to keep the user hooked.
+Suggestions to go to learning mode if too many wrong answers.
+Summary in a very fun and interactive tone.
