@@ -1,203 +1,148 @@
 import React, { useState, useEffect } from 'react';
-import Avatar from '../components/Avatar';
-import '../App.css';
+import { useNavigate } from 'react-router-dom';
 import Lottie from 'react-lottie';
 import correctAnimation from '../lotties/correct.json';
 import wrongAnimation from '../lotties/wrong.json';
 import thinkingAnimation from '../lotties/sarca.json';
+import Avatar from '../components/Avatar';
 
-const SpeechBubble = ({ message, onClose }) => {
-  return (
-    <>
-      {/* Blurred Overlay */}
-      <div style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-        backdropFilter: 'blur(8px)',
-        zIndex: 999,
-        animation: 'fadeIn 0.3s ease-out'
-      }} />
-
-      <div style={{
-        position: 'fixed',
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
-        zIndex: 1000,
-        maxWidth: '80%',
-        width: 'auto',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        animation: 'popIn 0.3s ease-out',
-      }}>
-        {/* Floating Lottie Animation */}
-        <div style={{
-          width: '200px',
-          height: '200px',
-          marginBottom: '-30px',
-          animation: 'float 3s ease-in-out infinite',
-          zIndex: 1001,
-        }}>
-          <Lottie
-            options={{
-              loop: true,
-              autoplay: true,
-              animationData: thinkingAnimation,
-              rendererSettings: {
-                preserveAspectRatio: 'xMidYMid slice',
-              },
-            }}
-            height={200}
-            width={200}
-          />
+const SpeechBubble = ({ message, onClose }) => (
+  <>
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-md z-[999] animate-fadeIn" />
+    <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[1000] max-w-[80%] w-auto flex flex-col items-center animate-popIn">
+      <div className="w-[200px] h-[200px] -mb-8 animate-float z-[1001]">
+        <Lottie
+          options={{
+            loop: true,
+            autoplay: true,
+            animationData: thinkingAnimation,
+            rendererSettings: {
+              preserveAspectRatio: 'xMidYMid slice',
+            },
+          }}
+          height={200}
+          width={200}
+        />
+      </div>
+      <div className="relative bg-red-500 p-8 rounded-3xl shadow-lg">
+        <div className="absolute -bottom-5 left-1/2 -translate-x-1/2 border-l-[20px] border-r-[20px] border-t-[20px] border-l-transparent border-r-transparent border-t-red-500" />
+        <div className="text-2xl font-bold text-white text-center mb-4 break-words">
+          {message}
         </div>
-
-        {/* Speech Bubble Container */}
-        <div style={{
-          position: 'relative',
-          backgroundColor: '#FF4B4B',
-          padding: '2rem',
-          borderRadius: '30px',
-          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)',
-        }}>
-          {/* Bottom Triangle */}
-          <div style={{
-            position: 'absolute',
-            bottom: '-20px',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            width: 0,
-            height: 0,
-            borderLeft: '20px solid transparent',
-            borderRight: '20px solid transparent',
-            borderTop: '20px solid #FF4B4B',
-          }} />
-          
-          {/* Message Text */}
-          <div style={{ 
-            fontSize: '1.75rem',
-            color: 'white',
-            fontWeight: 'bold',
-            textAlign: 'center',
-            marginBottom: '1rem',
-            wordBreak: 'break-word'
-          }}>
-            {message}
-          </div>
-
-          {/* Close Button */}
-          <div style={{ textAlign: 'center' }}>
-            <button
-              onClick={onClose}
-              style={{
-                padding: '0.75rem 1.5rem',
-                fontSize: '1rem',
-                backgroundColor: 'white',
-                color: '#FF4B4B',
-                border: 'none',
-                borderRadius: '25px',
-                cursor: 'pointer',
-                fontWeight: 'bold',
-                transition: 'transform 0.2s ease',
-                ':hover': {
-                  transform: 'scale(1.05)'
-                }
-              }}
-            >
-              I'll Try Harder...
-            </button>
-          </div>
+        <div className="text-center">
+          <button
+            onClick={onClose}
+            className="px-6 py-3 text-base bg-white text-red-500 font-bold rounded-full hover:scale-105 transition-transform"
+          >
+            I'll Try Harder...
+          </button>
         </div>
       </div>
-    </>
-  );
-};
+    </div>
+  </>
+);
 
-export default function PracticeMode() {
-  // ... [Previous state declarations remain the same]
-
+const PracticeMode = () => {
+  const [questions, setQuestions] = useState([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [lives, setLives] = useState(5);
-  const [wrongAnswers, setWrongAnswers] = useState(0);
   const [progress, setProgress] = useState(0);
   const [feedback, setFeedback] = useState('');
-  const [userAnswer, setUserAnswer] = useState(''); 
   const [isCorrect, setIsCorrect] = useState(null);
-  const [sarcasticReply, setSarcasticReply] = useState('');
+  const [userAnswer, setUserAnswer] = useState('');
   const [showSarcasticPopup, setShowSarcasticPopup] = useState(false);
+  const [sarcasticReply, setSarcasticReply] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [finalScore, setFinalScore] = useState(null);
+  const [quizCompleted, setQuizCompleted] = useState(false);
+  const [showOutOfLivesPopup, setShowOutOfLivesPopup] = useState(false);
 
-  // Sample question bank
-  const questions = [
-    {
-      question: "What is the capital of France?",
-      options: ["Berlin", "Madrid", "Paris", "Rome"],
-      correctAnswer: "Paris",
-      description: "Paris is the capital city of France, known for its art, fashion, and culture."
-    },
-    {
-      question: "What is the largest planet in our solar system?",
-      options: ["Earth", "Mars", "Jupiter", "Saturn"],
-      correctAnswer: "Jupiter",
-      description: "Jupiter is the largest planet in our solar system, known for its Great Red Spot."
-    },
+  const navigate = useNavigate();
+
+  const sarcasticReplies = [
+    "That's about as correct as saying the Earth is flat.",
+    "Nice try! But SQL dooesnt work like that xD",,
+    "Well, you got the syntax right... just not the logic.",
+    "SQL doesnot work on magic, my friend.",
+    "Amazing! You managed to ignore everything in the document!",
+
   ];
 
-  // Function to fetch sarcastic reply
-  const fetchSarcasticReply = async () => {
-    try {
-      const response = await fetch('/api/sarcastic');
-      const data = await response.json();
-      setSarcasticReply(data.reply);
-      setShowSarcasticPopup(true);
-    } catch (error) {
-      console.error('Error fetching sarcastic reply:', error);
-      setSarcasticReply('Oh wow, that was... spectacularly incorrect! Want to try that again with your brain turned on?');
-      setShowSarcasticPopup(true);
-    }
+  const scoreComments = {
+    0: "Wow, a perfect zero! You've truly mastered the art of not learning!",
+    5: "Half right! Perfectly balanced between knowledge and ignorance.",
+    10: "Perfect score! What, did you write this document yourself or something?"
   };
 
-  // Handle answer selection
-  const handleAnswer = async (selectedAnswer) => {
+  useEffect(() => {
+    const loadData = async () => {
+      setIsLoading(true);
+      try {
+        const storedData = localStorage.getItem('quizData');
+        if (storedData) {
+          const parsedData = JSON.parse(storedData);
+          setQuestions(parsedData.questions || []);
+        } else {
+          alert('No data found. Please go back and upload a PDF or select a topic.');
+        }
+      } catch (error) {
+        console.error('Error loading quiz data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadData();
+  }, []);
+
+  const handleAnswer = (selectedAnswer) => {
+    const correctAnswer = questions[currentQuestionIndex].correct_answer.trim().toLowerCase();
+    const userAnswerNormalized = selectedAnswer.trim().toLowerCase();
+
+    const correct = userAnswerNormalized === correctAnswer;
     setUserAnswer(selectedAnswer);
-    const correct = selectedAnswer === questions[currentQuestionIndex].correctAnswer;
     setIsCorrect(correct);
 
     if (correct) {
-      setFeedback(`Correct! ${questions[currentQuestionIndex].description}`);
-      setProgress(progress + 10);
-      setShowSarcasticPopup(false);
+      setFeedback(`Correct! ${questions[currentQuestionIndex].description || ''}`);
+      setProgress((prev) => Math.min(100, ((currentQuestionIndex + 1) / questions.length) * 100));
     } else {
-      setFeedback(`Incorrect! ${selectedAnswer} is not correct.`);
-      setLives(lives - 1);
-      setWrongAnswers(wrongAnswers + 1);
-      await fetchSarcasticReply();
+      setFeedback(`Incorrect! The correct answer was: "${questions[currentQuestionIndex].correct_answer}".`);
+      setLives((prev) => prev - 1);
+      const sarcasticMessage = sarcasticReplies[Math.floor(Math.random() * sarcasticReplies.length)];
+      setSarcasticReply(sarcasticMessage);
+      setShowSarcasticPopup(true);
+    }
+
+    // If lives reach 0, show the out-of-lives pop-up
+    if (lives - 1 === 0) {
+      setShowOutOfLivesPopup(true);
     }
   };
 
-  // Handle next question
   const handleNextQuestion = () => {
     if (currentQuestionIndex < questions.length - 1) {
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
+      setCurrentQuestionIndex((prev) => prev + 1);
       setFeedback('');
       setIsCorrect(null);
       setShowSarcasticPopup(false);
+      setUserAnswer('');
     } else {
-      setFeedback("You've completed the practice session!");
+      setFeedback("You've completed all questions!");
+      const score = Math.round((lives / 5) * 10);
+      setFinalScore(score);
+      setQuizCompleted(true);
     }
-    setUserAnswer('');
   };
 
-  // Check if game over (lives run out)
-  useEffect(() => {
-    if (lives <= 0) {
-      setFeedback("Game Over! Please switch to Learn Mode.");
-    }
-  }, [lives]);
+  const handleQuit = () => {
+    navigate('/home');
+  };
+
+  const handleGoToLearnMode = () => {
+    setShowOutOfLivesPopup(false);
+    navigate('/learn'); // Navigate to Learn Mode when lives are over
+  };
 
   const lottieOptions = {
     loop: false,
@@ -208,120 +153,128 @@ export default function PracticeMode() {
     },
   };
 
-  return (  
-    <div style={{ display: 'flex', height: '100vh', position: 'relative' }}>
-      {/* Avatar Sidebar */}
-      <div style={{ width: '35%', textAlign: 'center', backgroundColor: '#4A90E2', height: '100vh', color: 'white', alignItems: 'center' }}>
-        <Avatar />
-      </div>
-
-      {/* Main Content */}
-      <div style={{ padding: '0rem', textAlign: 'center', width: '65%' }}>
-        {/* Progress Bar */}
-        <div style={{ marginBottom: '20px' }}>
-          <div style={{ width: '100%', height: '10px', backgroundColor: '#ccc', marginBottom: '10px' }}>
-            <div style={{ width: `${progress}%`, height: '100%', backgroundColor: '#4caf50' }}></div>
-          </div>
-
-          {/* Lives Display */}
-          <div style={{ marginBottom: '10px' }}>
-            <span style={{ fontSize: '24px' }}>❤️ {lives}</span>
-          </div>
+  return (
+    <div className="flex h-screen relative">
+      {isLoading ? (
+        <div className="flex items-center justify-center w-full h-screen">
+          <div className="loader"></div>
         </div>
-
-        {/* Question */}
-        <h3 className="question-text">
-          {questions[currentQuestionIndex].question}
-        </h3>
-
-        {/* Options */}
-        <div style={{ marginBottom: '20px' }}>
-          {questions[currentQuestionIndex].options.map((option, index) => (
-            <button 
-              key={index} 
-              onClick={() => handleAnswer(option)}
-              className="option-button"
+      ) : (
+        <>
+          <div className="w-[35%] text-center bg-blue-500 h-screen text-white items-center">
+            <Avatar />
+          </div>
+          <div className="p-0 text-center w-[65%]">
+            <button
+              onClick={handleQuit}
+              className="absolute top-5 right-5 bg-red-500 text-white p-2 rounded-full"
             >
-              {option}
+              Quit
             </button>
-          ))}
-        </div>
-
-        {/* Sarcastic Speech Bubble Popup */}
-        {showSarcasticPopup && (
-          <SpeechBubble 
-            message={sarcasticReply}
-            onClose={() => setShowSarcasticPopup(false)}
-          />
-        )}
-
-        {/* Feedback Footer */}
-        {feedback && (
-          <div style={{
-            position: 'fixed',
-            bottom: 0,
-            width: '65%',
-            backgroundColor: '#000',
-            color: '#fff',
-            padding: '1rem',
-            textAlign: 'center',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-around',
-            gap: '1.0rem',
-          }}>
-            <div style={{ width: '125px', height: '125px' }}>
-              <Lottie options={lottieOptions} height={125} width={125} />
+            <div className="mb-5">
+              <div className="w-full h-2.5 bg-gray-200 mb-2.5">
+                <div 
+                  className="h-full bg-green-500 transition-all duration-300" 
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+              <div className="mb-2.5">
+                <span className="text-2xl">❤️ {lives}</span>
+              </div>
             </div>
-            <p style={{ 
-              fontSize: '1.5rem',
-              flex: 1,
-              lineHeight: '1.4',
-              margin: 0,
-              fontWeight: '500'
-            }}>
-              {feedback}
-            </p>
+            {questions[currentQuestionIndex] && !quizCompleted && (
+              <>
+                <h3 className="question-text">
+                  {questions[currentQuestionIndex].question}
+                </h3>
+                <div className="mb-5 space-y-2">
+                  {questions[currentQuestionIndex].options.map((option, index) => {
+                    const letter = String.fromCharCode(65 + index);
+                    return (
+                      <button
+                        key={index}
+                        onClick={() => handleAnswer(option)}
+                        className="option-button w-full p-3 text-left rounded-lg border hover:bg-gray-50"
+                        disabled={!!userAnswer}
+                      >
+                        <span className="font-medium mr-2">{letter}.</span>
+                        {option}
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+            {showSarcasticPopup && (
+              <SpeechBubble
+                message={sarcasticReply}
+                onClose={() => setShowSarcasticPopup(false)}
+              />
+            )}
+            {feedback && (
+              <div className="fixed bottom-0 w-[65%] bg-black text-white p-4 flex items-center justify-around gap-4">
+                <div className="w-[6rem] h-[6rem]">
+                  <Lottie options={lottieOptions} height={90} width={90} />
+                </div>
+                <p className="text-2xl flex-1 leading-relaxed m-0 font-medium">
+                  {feedback}
+                </p>
+              </div>
+            )}
+            {quizCompleted && finalScore !== null && (
+              <div className="fixed bottom-0 w-[65%] bg-black text-white p-4 flex items-center justify-around gap-4">
+                <div className="text-2xl font-bold">Your Final Score: {finalScore}/10</div>
+                <div>{scoreComments[finalScore]}</div>
+              </div>
+            )}
+            {currentQuestionIndex < questions.length - 1 && !quizCompleted && feedback && (
+              <button
+                onClick={handleNextQuestion}
+                className="mt-5 px-5 py-2.5 text-base rounded-lg bg-green-500 text-white cursor-pointer hover:bg-green-600"
+              >
+                Next Question
+              </button>
+            )}
           </div>
-        )}
+        </>
+      )}
 
-        {/* Next Question Button */}
-        {currentQuestionIndex < questions.length - 1 && feedback && (
-          <button
-            onClick={handleNextQuestion}
-            style={{
-              marginTop: '20px',
-              padding: '10px 20px',
-              fontSize: '16px',
-              borderRadius: '8px',
-              backgroundColor: '#4caf50',
-              color: 'white',
-              border: 'none',
-              cursor: 'pointer',
-            }}
-          >
-            Next Question
-          </button>
-        )}
-      </div>
-
-      {/* Add CSS animation */}
-      <style>{`
-        @keyframes popIn {
-          0% {
-            transform: translate(-50%, -50%) scale(0);
-            opacity: 0;
-          }
-          70% {
-            transform: translate(-50%, -50%) scale(1.1);
-            opacity: 0.7;
-          }
-          100% {
-            transform: translate(-50%, -50%) scale(1);
-            opacity: 1;
-          }
-        }
-      `}</style>
+      {showOutOfLivesPopup && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-md z-[999] animate-fadeIn">
+          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[1000] max-w-[80%] w-auto flex flex-col items-center animate-popIn">
+            <div className="w-[200px] h-[200px] -mb-8 animate-float z-[1001]">
+              <Lottie
+                options={{
+                  loop: true,
+                  autoplay: true,
+                  animationData: wrongAnimation,
+                  rendererSettings: {
+                    preserveAspectRatio: 'xMidYMid slice',
+                  },
+                }}
+                height={200}
+                width={200}
+              />
+            </div>
+            <div className="relative bg-red-500 p-8 rounded-3xl shadow-lg">
+              <div className="absolute -bottom-5 left-1/2 -translate-x-1/2 border-l-[20px] border-r-[20px] border-t-[20px] border-l-transparent border-r-transparent border-t-red-500" />
+              <div className="text-2xl font-bold text-white text-center mb-4 break-words">
+                Oops! You ran out of lives. Time to switch to Learn Mode.
+              </div>
+              <div className="text-center">
+                <button
+                  onClick={handleGoToLearnMode}
+                  className="px-6 py-3 text-base bg-white text-red-500 font-bold rounded-full hover:scale-105 transition-transform"
+                >
+                  Take me to Learn Mode
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
-}
+};
+
+export default PracticeMode;
