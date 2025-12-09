@@ -18,3 +18,12 @@ Progress bar and 5 lives to gamify the experiance.
 Sarcastic responses to keep the user hooked.
 Suggestions to go to learning mode if too many wrong answers.
 Summary in a very fun and interactive tone.
+
+# UI and Various Modes
+
+![4b](https://github.com/user-attachments/assets/d8d130b0-71c6-457b-a36e-cf6a3da95d17)
+![3b](https://github.com/user-attachments/assets/4fedf11f-d52e-4f05-9bee-62f4e0156f36)
+![2b](https://github.com/user-attachments/assets/1f5946cd-8d33-4447-b6f4-645aa85915d6)
+![1b](https://github.com/user-attachments/assets/2bbc5e68-23b5-4522-859a-a85754cc92c6)
+
+
